@@ -1,0 +1,61 @@
+name: Release
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+      if: github.event_name != 'push'
+    - name: Set tag name
+      id: tag
+      run: |
+        if [[ "${{ github.event_name }}" != "push" ]]; then
+          tag=v$(date +%Y%m%d.%H%M%S)
+        else
+          tag=$(basename "${{ github.ref }}")
+        fi
+        echo "tag=$tag" >> $GITHUB_OUTPUT
+
+    - name: Create Draft Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: ${{ steps.tag.outputs.tag }}
+        draft: true
+        prerelease: false
+
+    - name: Create archive
+      run: |
+        mv ./app ${{ github.repository }}
+        tar czf ${{ github.repository }}.spl ${{ github.repository }}/
+
+    - uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ github.repository }}.spl
+        asset_name: ${{ github.repository }}.spl
+        asset_content_type: application/gzip
+
+    - uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
