@@ -1,5 +1,9 @@
 ---
-  on: push
+  on: 
+    push:
+    # Pattern matched against refs/tags
+      tags:        
+        - '*' 
 
   jobs:
     build:
@@ -15,7 +19,7 @@
           uses: softprops/action-gh-release@v1
           if: startsWith(github.ref, 'refs/tags/')
           with:
-            name: latest
+            # name: latest
             files: |
               Release.txt
               LICENSE.txt
