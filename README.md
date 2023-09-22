@@ -1,3 +1,3 @@
 # Git Release
 
-testing the git action to release package.
+testing the git action to release package..
